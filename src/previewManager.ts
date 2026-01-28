@@ -136,12 +136,8 @@ export class QuarkdownPreviewManager {
         this.saveSubscription?.dispose();
         this.saveSubscription = vscode.workspace.onDidSaveTextDocument((document: vscode.TextDocument) => {
             if (document.fileName === filePath && this.lastPreviewUrl) {
-                const currentVersion = document.version;
-                if (this.lastSavedVersion === currentVersion) {
-                    return;
-                }
-                this.lastSavedVersion = currentVersion;
                 this.webview.loadPreview(this.lastPreviewUrl);
+                this.lastSavedVersion = document.version;
             }
         });
     }
