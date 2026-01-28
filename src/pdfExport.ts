@@ -42,8 +42,41 @@ export async function exportToPDF(): Promise<void> {
             logger.dispose();
         },
         onError: (error) => {
-            vscode.window.showErrorMessage(error);
-            logger.dispose();
+            logger.error(error);
+            logger.show?.();
+
+            const lowerError = error.toLowerCase();
+            if (lowerError.includes('quarkdown not found')) {
+                void vscode.window.showErrorMessage(
+                    error,
+                    Strings.exportInstallHint,
+                    Strings.exportOpenSettings
+                ).then((selection?: string) => {
+                    if (selection === Strings.exportOpenSettings) {
+                        void vscode.commands.executeCommand('workbench.action.openSettings', 'quarkdown.path');
+                    }
+                });
+                return;
+            }
+
+            if (lowerError.includes('pdf was not created') || lowerError.includes('output pdf')) {
+                vscode.window.showErrorMessage(`${error}. ${Strings.exportInstallHint}`);
+                return;
+            }
+
+            if (lowerError.includes('exit code')) {
+                void vscode.window.showErrorMessage(
+                    `${Strings.exportFailed}: ${error}`,
+                    Strings.exportViewOutput
+                ).then((selection?: string) => {
+                    if (selection === Strings.exportViewOutput) {
+                        logger.show?.();
+                    }
+                });
+                return;
+            }
+
+            vscode.window.showErrorMessage(`${Strings.exportFailed}: ${error}`);
         }
         // onProgress events are automatically logged by the service
     };
@@ -54,6 +87,7 @@ export async function exportToPDF(): Promise<void> {
         const errorMessage = `Export failed: ${error}`;
         vscode.window.showErrorMessage(errorMessage);
         logger.error(errorMessage);
+        logger.show?.();
         logger.dispose();
     }
 }

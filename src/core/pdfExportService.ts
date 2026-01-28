@@ -35,6 +35,15 @@ export interface PdfExportEvents {
 export class PdfExportService {
     private readonly processManager: ProcessManager;
     private readonly logger: Logger;
+    private readonly sanitizedErrorPatterns = [
+        /error/i,
+        /exception/i,
+        /failed/i,
+        /not\s+found/i,
+        /cannot/i,
+        /missing/i,
+        /stack/i
+    ];
 
     constructor() {
         this.processManager = new ProcessManager();
@@ -60,6 +69,7 @@ export class PdfExportService {
         logger.info(`Starting PDF export: ${command.command} ${command.args.join(' ')}`);
 
         let stderrBuffer = '';
+        let processErrored = false;
 
         const processConfig: ProcessConfig = {
             command: command.command,
@@ -80,9 +90,13 @@ export class PdfExportService {
                         ? 'Quarkdown not found. Please install Quarkdown first.'
                         : error.message;
                     logger.error(`Process error: ${errorMessage}`);
+                    processErrored = true;
                     events?.onError?.(errorMessage);
                 },
                 onExit: (code) => {
+                    if (processErrored) {
+                        return;
+                    }
                     if (code !== 0) {
                         const errorMessage = `PDF export failed with exit code ${code}`;
                         logger.error(errorMessage);
@@ -90,8 +104,9 @@ export class PdfExportService {
                         return;
                     }
 
-                    if (stderrBuffer.trim()) {
-                        const errorMessage = `PDF export failed: ${stderrBuffer.trim()}`;
+                    const stderrText = this.extractRelevantStderr(stderrBuffer);
+                    if (stderrText) {
+                        const errorMessage = `PDF export failed: ${stderrText}`;
                         logger.error(errorMessage);
                         events?.onError?.(errorMessage);
                     } else {
@@ -136,5 +151,16 @@ export class PdfExportService {
      */
     public async cancel(): Promise<void> {
         await this.processManager.stop();
+    }
+
+    private extractRelevantStderr(stderr: string): string {
+        const trimmed = stderr.trim();
+        if (!trimmed) {
+            return '';
+        }
+
+        const lines = trimmed.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+        const relevant = lines.filter(line => this.sanitizedErrorPatterns.some(pattern => pattern.test(line)));
+        return (relevant.length ? relevant : lines).slice(0, 5).join(' | ');
     }
 }

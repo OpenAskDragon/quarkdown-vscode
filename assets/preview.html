@@ -202,10 +202,12 @@
         // Startup wrapper
 
         window.addEventListener('message', (event) => {
-            const { command, url } = event.data || {};
+            const { command, url, nonce } = event.data || {};
             if (command === 'setSrc' && url) {
                 frame.addEventListener('load', init, { once: true });
-                frame.src = url;
+                const cacheBuster = nonce ? `qd=${nonce}` : `qd=${Date.now()}`;
+                const separator = url.includes('?') ? '&' : '?';
+                frame.src = `${url}${separator}${cacheBuster}`;
             }
         });
     </script>
