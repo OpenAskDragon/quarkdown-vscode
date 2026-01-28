@@ -1,0 +1,40 @@
+name: Release VSIX
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      
+      - name: Build VSIX
+        run: yarn build
+      
+      - name: Get VSIX filename
+        id: get_vsix
+        run: echo "VSIX_FILE=$(ls quarkdown-vscode-*.vsix)" >> $GITHUB_OUTPUT
+      
+      - name: Create Release and Upload VSIX
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ steps.get_vsix.outputs.VSIX_FILE }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
