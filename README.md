@@ -54,3 +54,30 @@ This is enabled by default, but in case it isn't working properly, make sure `ed
 
 **Q: How to adjust the live preview refresh rate?**  
 A: Compilation is triggered every time the document is saved. The auto-save delay defaults to 150ms, and can be adjusted by changing the `files.autoSaveDelay` setting.
+
+## Installation from VSIX
+
+If you want to install the extension from a pre-built VSIX file instead of the VS Code Marketplace:
+
+1. Go to the [Releases page](https://github.com/OpenAskDragon/quarkdown-vscode/releases)
+2. Download the latest `quarkdown-vscode-*.vsix` file
+3. In VS Code, go to the Extensions view (Ctrl+Shift+X)
+4. Click on the "..." menu at the top-right of the Extensions view
+5. Select "Install from VSIX..."
+6. Browse to and select the downloaded VSIX file
+
+The extension will be installed and ready to use!
+
+## Release Process
+
+This extension uses GitHub Actions to automatically build and publish VSIX files when a new version tag is created. To create a new release:
+
+```bash
+git tag v1.0.5
+git push origin v1.0.5
+```
+
+The workflow will automatically:
+- Build the VSIX package
+- Create a GitHub Release with auto-generated release notes
+- Upload the VSIX file as a release asset
