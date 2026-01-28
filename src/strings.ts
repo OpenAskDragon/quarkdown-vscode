@@ -22,5 +22,8 @@ export const Strings = {
     exportInProgress: 'Exporting to PDF…',
     exportFailed: 'PDF export failed',
     exportSucceeded: 'PDF exported successfully.',
-    exportPdfNotFound: 'Output PDF was not created'
+    exportPdfNotFound: 'Output PDF was not created',
+    exportInstallHint: 'Install Quarkdown and ensure the "quarkdown.path" setting points to the executable.',
+    exportOpenSettings: 'Open Settings',
+    exportViewOutput: 'View Output'
 } as const;

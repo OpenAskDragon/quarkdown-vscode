@@ -42,8 +42,43 @@ export async function exportToPDF(): Promise<void> {
             logger.dispose();
         },
         onError: (error) => {
-            vscode.window.showErrorMessage(error);
-            logger.dispose();
+            logger.error(error);
+
+            const lowerError = error.toLowerCase();
+            if (lowerError.includes('quarkdown not found')) {
+                void vscode.window.showErrorMessage(
+                    error,
+                    Strings.exportInstallHint,
+                    Strings.exportOpenSettings
+                ).then((selection?: string) => {
+                    if (selection === Strings.exportOpenSettings) {
+                        void vscode.commands.executeCommand('workbench.action.openSettings', 'quarkdown.path');
+                    }
+                });
+                return;
+            }
+
+            if (lowerError.includes(Strings.exportPdfNotFound.toLowerCase())) {
+                void vscode.window.showErrorMessage(`${error}. ${Strings.exportInstallHint}`);
+                return;
+            }
+
+            if (lowerError.includes('exit code')) {
+                const message = lowerError.startsWith(Strings.exportFailed.toLowerCase())
+                    ? error
+                    : `${Strings.exportFailed}: ${error}`;
+                void vscode.window.showErrorMessage(
+                    message,
+                    Strings.exportViewOutput
+                ).then((selection?: string) => {
+                    if (selection === Strings.exportViewOutput) {
+                        logger.show?.();
+                    }
+                });
+                return;
+            }
+
+            void vscode.window.showErrorMessage(`${Strings.exportFailed}: ${error}`);
         }
         // onProgress events are automatically logged by the service
     };
@@ -54,6 +89,7 @@ export async function exportToPDF(): Promise<void> {
         const errorMessage = `Export failed: ${error}`;
         vscode.window.showErrorMessage(errorMessage);
         logger.error(errorMessage);
+        logger.show?.();
         logger.dispose();
     }
 }

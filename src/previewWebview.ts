@@ -22,6 +22,7 @@ export class PreviewWebview {
     private webviewPanel: vscode.WebviewPanel | undefined;
     private events: WebviewEvents | undefined;
     private allowedOrigins = '';
+    private previewCacheVersion = 0;
 
     /**
      * Set event handlers for webview lifecycle events.
@@ -83,12 +84,14 @@ export class PreviewWebview {
         if (this.webviewPanel) {
             this.webviewPanel.title = Strings.previewPanelTitle;
             this.webviewPanel.webview.html = this.getWebviewHtml();
+            this.previewCacheVersion += 1;
 
             // Post message after DOM is ready to load the preview URL
             setTimeout(() => {
                 this.webviewPanel?.webview.postMessage({
                     command: 'setSrc',
-                    url
+                    url,
+                    cacheVersion: this.previewCacheVersion
                 });
             }, 0);
         }

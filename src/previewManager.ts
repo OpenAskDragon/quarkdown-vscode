@@ -16,6 +16,9 @@ export class QuarkdownPreviewManager {
     private server: QuarkdownLivePreviewServer;
     private webview: PreviewWebview;
     private currentFilePath: string | undefined;
+    private lastPreviewUrl: string | undefined;
+    private saveSubscription: vscode.Disposable | undefined;
+    private lastSavedVersion?: number;
 
     private constructor() {
         this.server = new QuarkdownLivePreviewServer();
@@ -34,6 +37,7 @@ export class QuarkdownPreviewManager {
         // Server event handlers
         const serverEvents: ServerEvents = {
             onReady: (url: string) => {
+                this.lastPreviewUrl = url;
                 this.webview.loadPreview(url);
             },
             onError: (error: string) => {
@@ -68,6 +72,8 @@ export class QuarkdownPreviewManager {
         await this.stopPreview();
 
         this.currentFilePath = filePath;
+        this.lastSavedVersion = undefined;
+        this.registerSaveListener(filePath);
 
         // Configure webview with allowed origins for the preview server
         const port = DEFAULT_PREVIEW_PORT;
@@ -115,7 +121,29 @@ export class QuarkdownPreviewManager {
      */
     private cleanup(): void {
         this.currentFilePath = undefined;
+        this.lastPreviewUrl = undefined;
+        this.lastSavedVersion = undefined;
+        this.saveSubscription?.dispose();
+        this.saveSubscription = undefined;
         this.webview.dispose();
+    }
+
+    /**
+     * Register a save listener to reload the preview when the active file is saved.
+     * Replaces any existing save listener to avoid duplicates.
+     */
+    private registerSaveListener(filePath: string): void {
+        this.saveSubscription?.dispose();
+        this.saveSubscription = vscode.workspace.onDidSaveTextDocument((document: vscode.TextDocument) => {
+            if (document.fileName === filePath && this.lastPreviewUrl) {
+                const currentVersion = document.version;
+                if (this.lastSavedVersion === currentVersion) {
+                    return;
+                }
+                this.lastSavedVersion = currentVersion;
+                this.webview.loadPreview(this.lastPreviewUrl);
+            }
+        });
     }
 
     /**
@@ -125,7 +153,7 @@ export class QuarkdownPreviewManager {
         vscode.window.showErrorMessage(
             Strings.previewInstallErrorTitle,
             Strings.previewInstallGuide
-        ).then(selection => {
+        ).then((selection?: string) => {
             if (selection === Strings.previewInstallGuide) {
                 void vscode.env.openExternal(vscode.Uri.parse('https://github.com/iamgio/quarkdown'));
             }
