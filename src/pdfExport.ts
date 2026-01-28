@@ -43,7 +43,6 @@ export async function exportToPDF(): Promise<void> {
         },
         onError: (error) => {
             logger.error(error);
-            logger.show?.();
 
             const lowerError = error.toLowerCase();
             if (lowerError.includes('quarkdown not found')) {
@@ -59,14 +58,17 @@ export async function exportToPDF(): Promise<void> {
                 return;
             }
 
-            if (lowerError.includes('pdf was not created') || lowerError.includes('output pdf')) {
-                vscode.window.showErrorMessage(`${error}. ${Strings.exportInstallHint}`);
+            if (lowerError.includes(Strings.exportPdfNotFound.toLowerCase())) {
+                void vscode.window.showErrorMessage(`${error}. ${Strings.exportInstallHint}`);
                 return;
             }
 
             if (lowerError.includes('exit code')) {
+                const message = lowerError.startsWith(Strings.exportFailed.toLowerCase())
+                    ? error
+                    : `${Strings.exportFailed}: ${error}`;
                 void vscode.window.showErrorMessage(
-                    `${Strings.exportFailed}: ${error}`,
+                    message,
                     Strings.exportViewOutput
                 ).then((selection?: string) => {
                     if (selection === Strings.exportViewOutput) {
@@ -76,7 +78,7 @@ export async function exportToPDF(): Promise<void> {
                 return;
             }
 
-            vscode.window.showErrorMessage(`${Strings.exportFailed}: ${error}`);
+            void vscode.window.showErrorMessage(`${Strings.exportFailed}: ${error}`);
         }
         // onProgress events are automatically logged by the service
     };

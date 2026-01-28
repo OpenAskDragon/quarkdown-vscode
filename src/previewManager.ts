@@ -18,6 +18,7 @@ export class QuarkdownPreviewManager {
     private currentFilePath: string | undefined;
     private lastPreviewUrl: string | undefined;
     private saveSubscription: vscode.Disposable | undefined;
+    private lastSavedVersion?: number;
 
     private constructor() {
         this.server = new QuarkdownLivePreviewServer();
@@ -71,6 +72,7 @@ export class QuarkdownPreviewManager {
         await this.stopPreview();
 
         this.currentFilePath = filePath;
+        this.lastSavedVersion = undefined;
         this.registerSaveListener(filePath);
 
         // Configure webview with allowed origins for the preview server
@@ -120,18 +122,25 @@ export class QuarkdownPreviewManager {
     private cleanup(): void {
         this.currentFilePath = undefined;
         this.lastPreviewUrl = undefined;
+        this.lastSavedVersion = undefined;
         this.saveSubscription?.dispose();
         this.saveSubscription = undefined;
         this.webview.dispose();
     }
 
     /**
-     * Reload the preview when the active file is saved to avoid stale content.
+     * Register a save listener to reload the preview when the active file is saved.
+     * Replaces any existing save listener to avoid duplicates.
      */
     private registerSaveListener(filePath: string): void {
         this.saveSubscription?.dispose();
         this.saveSubscription = vscode.workspace.onDidSaveTextDocument((document: vscode.TextDocument) => {
             if (document.fileName === filePath && this.lastPreviewUrl) {
+                const currentVersion = document.version;
+                if (this.lastSavedVersion === currentVersion) {
+                    return;
+                }
+                this.lastSavedVersion = currentVersion;
                 this.webview.loadPreview(this.lastPreviewUrl);
             }
         });

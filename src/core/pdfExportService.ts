@@ -35,7 +35,7 @@ export interface PdfExportEvents {
 export class PdfExportService {
     private readonly processManager: ProcessManager;
     private readonly logger: Logger;
-    private readonly sanitizedErrorPatterns = [
+    private readonly errorIndicatorPatterns = [
         /error/i,
         /exception/i,
         /failed/i,
@@ -104,7 +104,7 @@ export class PdfExportService {
                         return;
                     }
 
-                    const stderrText = this.extractRelevantStderr(stderrBuffer);
+                    const stderrText = this.getFilteredStderrSummary(stderrBuffer);
                     if (stderrText) {
                         const errorMessage = `PDF export failed: ${stderrText}`;
                         logger.error(errorMessage);
@@ -153,14 +153,14 @@ export class PdfExportService {
         await this.processManager.stop();
     }
 
-    private extractRelevantStderr(stderr: string): string {
+    private getFilteredStderrSummary(stderr: string): string {
         const trimmed = stderr.trim();
         if (!trimmed) {
             return '';
         }
 
         const lines = trimmed.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-        const relevant = lines.filter(line => this.sanitizedErrorPatterns.some(pattern => pattern.test(line)));
+        const relevant = lines.filter(line => this.errorIndicatorPatterns.some(pattern => pattern.test(line)));
         return (relevant.length ? relevant : lines).slice(0, 5).join(' | ');
     }
 }
